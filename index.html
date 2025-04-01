@@ -138,29 +138,47 @@
             }
         };
 
-        function loginUser() {
-            const apiKey = document.getElementById('apiKey').value.trim();
-            const user = fakeAPI.authenticate(apiKey);
-            
-            if (user) {
-                document.getElementById('loginSection').classList.add('hidden');
-                document.getElementById('dashboardSection').classList.remove('hidden');
-                document.getElementById('userName').textContent = user.name;
-                document.getElementById('userBalance').textContent = `$${user.balance.toLocaleString()}`;
+function loginUser() {
+    const apiKey = document.getElementById('apiKey').value.trim();
 
-                // Display investment suggestions based on user balance
-                const suggestions = fakeAPI.getInvestmentSuggestions(user.balance);
-                const suggestionsList = document.getElementById('investmentSuggestions');
-                suggestionsList.innerHTML = '';
-                suggestions.forEach(suggestion => {
-                    const listItem = document.createElement('li');
-                    listItem.textContent = `${suggestion.name} - Recommended: $${suggestion.recommendedInvestment.toLocaleString()}`;
-                    suggestionsList.appendChild(listItem);
-                });
-            } else {
-                alert('Invalid API Key');
+    if (!apiKey) {
+        alert('Please enter your API key!');
+        return;
+    }
+
+    // Replace with the actual Torn API endpoint for user data
+    const apiUrl = `https://api.torn.com/user/?apiKey=${apiKey}&secret=your_secret_key`; // Replace with real URL
+
+    // Fetch the user's data from the Torn API
+    fetch(apiUrl)
+        .then(response => response.json())
+        .then(data => {
+            if (data.error) {
+                alert('Invalid API Key or there was an error with the request!');
+                return;
             }
-        }
+
+            // Assuming the API returns the user data in the format: { name: "John Doe", balance: 1000000 }
+            const user = data;
+            document.getElementById('loginSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+            document.getElementById('userName').textContent = user.name;
+            document.getElementById('userBalance').textContent = `$${user.balance.toLocaleString()}`;
+
+            // Display investment suggestions based on user balance
+            const suggestions = getInvestmentSuggestions(user.balance);
+            const suggestionsList = document.getElementById('investmentSuggestions');
+            suggestionsList.innerHTML = '';
+            suggestions.forEach(suggestion => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${suggestion.name} - Recommended: $${suggestion.recommendedInvestment.toLocaleString()}`;
+                suggestionsList.appendChild(listItem);
+            });
+        })
+        .catch(error => {
+            alert('Error fetching user data: ' + error.message);
+        });
+}
 
         function formatNumber(num) {
             if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';

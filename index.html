@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Torn Stock Market Calculator (TSMC)</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Custom styles for themes, cards, and buttons remain the same as before */
+        :root {
+            --bg-color: #1a202c;
+            --card-color: #2d3748;
+            --text-color: #ffffff;
+            --button-color: #22c55e;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+        .card {
+            background-color: var(--card-color);
+        }
+        .button {
+            background-color: var(--button-color);
+        }
+        .theme-card {
+            background-color: var(--card-color);
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .theme-button {
+            background-color: var(--button-color);
+            text-align: center;
+            padding: 0.75rem;
+            font-weight: bold;
+            border-radius: 0.5rem;
+            transition: background-color 0.3s;
+        }
+        .theme-button:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body onload="loadTheme()">
+
+    <!-- Login Section -->
+    <div class="max-w-md mx-auto mt-10 p-5 card rounded-lg shadow-lg" id="loginSection">
+        <h2 class="text-xl font-bold text-center mb-5">Login with API Key</h2>
+        <div class="mb-4">
+            <label class="block text-sm font-medium">API Key</label>
+            <input type="text" id="apiKey" class="w-full p-2 mt-1 bg-gray-700 text-white border border-gray-600 rounded" placeholder="Enter your API key" />
+        </div>
+        <button onclick="loginUser()" class="w-full button hover:opacity-80 text-white font-bold py-2 px-4 rounded">Login</button>
+    </div>
+
+    <!-- User Dashboard Section -->
+    <div class="hidden" id="dashboardSection">
+        <div class="max-w-md mx-auto mt-10 p-5 card rounded-lg shadow-lg">
+            <h2 class="text-xl font-bold text-center mb-5">Welcome, <span id="userName"></span></h2>
+
+            <!-- Display User Balance -->
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold">Your Balance:</h3>
+                <p id="userBalance" class="text-lg text-green-500">$0</p>
+            </div>
+
+            <!-- Investment Suggestions -->
+            <div class="mb-4">
+                <h3 class="text-lg font-semibold">Investment Suggestions</h3>
+                <ul id="investmentSuggestions" class="space-y-2">
+                    <!-- Dynamic suggestions will be populated here -->
+                </ul>
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium">Cash Invested ($)</label>
+                <input type="text" id="cashInvested" class="w-full p-2 mt-1 bg-gray-700 text-white border border-gray-600 rounded" placeholder="Enter cash (e.g., 2M, 5B)" oninput="handleInput(this)">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium">Purchase Price Per Share ($)</label>
+                <input type="number" id="purchasePrice" class="w-full p-2 mt-1 bg-gray-700 text-white border border-gray-600 rounded" placeholder="Enter purchase price">
+            </div>
+
+            <div class="mb-4">
+                <label class="block text-sm font-medium">Current Price Per Share ($)</label>
+                <input type="number" id="currentPrice" class="w-full p-2 mt-1 bg-gray-700 text-white border border-gray-600 rounded" placeholder="Enter current price">
+            </div>
+
+            <button onclick="calculateProfit()" class="w-full button hover:opacity-80 text-white font-bold py-2 px-4 rounded">Calculate</button>
+
+            <div class="mt-5 p-4 card rounded">
+                <h3 class="text-lg font-bold">Results</h3>
+                <p>Shares Owned: <span id="sharesOwned">0</span></p>
+                <p>Total Value: <span id="totalValue">$0</span></p>
+                <p>Profit/Loss: <span id="profitLoss" class="text-green-400">$0</span></p>
+                <p>ROI: <span id="roi">0%</span></p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hidden Theme Menu (as before) -->
+    <div id="themeMenu" class="hidden fixed inset-0 bg-black bg-opacity-50 flex justify-center items-center">
+        <div class="theme-card">
+            <h3 class="text-lg font-bold mb-3 text-center text-white">Select Theme</h3>
+            <button onclick="changeTheme('dark')" class="theme-button w-full mb-2">Dark Mode</button>
+            <button onclick="changeTheme('purple')" class="theme-button w-full mb-2">Purple Theme</button>
+            <button onclick="changeTheme('redTheme')" class="theme-button w-full mb-2">Red Theme</button>
+            <button onclick="changeTheme('blueTheme')" class="theme-button w-full mb-2">Blue Theme</button>
+            <button onclick="changeTheme('greenTheme')" class="theme-button w-full">Green Theme</button>
+        </div>
+    </div>
+
+    <script>
+        // Simulating API response for user login and balance fetch
+        const fakeAPI = {
+            authenticate: (apiKey) => {
+                if (apiKey === 'valid-api-key') {
+                    return { name: 'John Doe', balance: 1000000 };
+                } else {
+                    return null;
+                }
+            },
+            getInvestmentSuggestions: (balance) => {
+                if (balance >= 1000000) {
+                    return [
+                        { name: 'Stocks - Tech', recommendedInvestment: 500000 },
+                        { name: 'Real Estate', recommendedInvestment: 300000 },
+                        { name: 'Cryptocurrency', recommendedInvestment: 200000 }
+                    ];
+                } else {
+                    return [
+                        { name: 'Stocks - Small Caps', recommendedInvestment: 50000 },
+                        { name: 'Bonds', recommendedInvestment: 20000 }
+                    ];
+                }
+            }
+        };
+
+        function loginUser() {
+            const apiKey = document.getElementById('apiKey').value.trim();
+            const user = fakeAPI.authenticate(apiKey);
+            
+            if (user) {
+                document.getElementById('loginSection').classList.add('hidden');
+                document.getElementById('dashboardSection').classList.remove('hidden');
+                document.getElementById('userName').textContent = user.name;
+                document.getElementById('userBalance').textContent = `$${user.balance.toLocaleString()}`;
+
+                // Display investment suggestions based on user balance
+                const suggestions = fakeAPI.getInvestmentSuggestions(user.balance);
+                const suggestionsList = document.getElementById('investmentSuggestions');
+                suggestionsList.innerHTML = '';
+                suggestions.forEach(suggestion => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${suggestion.name} - Recommended: $${suggestion.recommendedInvestment.toLocaleString()}`;
+                    suggestionsList.appendChild(listItem);
+                });
+            } else {
+                alert('Invalid API Key');
+            }
+        }
+
+        function formatNumber(num) {
+            if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
+            if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
+            if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
+            if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+            return num.toFixed(2);
+        }
+
+        function handleInput(input) {
+            let rawValue = input.value.toUpperCase();
+            let convertedValue = parseInput(rawValue);
+            if (!isNaN(convertedValue) && convertedValue > 0) {
+                input.value = convertedValue.toLocaleString();
+            }
+        }
+
+        function parseInput(value) {
+            value = value.toUpperCase().trim();
+            let multiplier = 1;
+            
+            if (value.endsWith('T')) multiplier = 1e12;
+            else if (value.endsWith('B')) multiplier = 1e9;
+            else if (value.endsWith('M')) multiplier = 1e6;
+            else if (value.endsWith('K')) multiplier = 1e3;
+
+            return parseFloat(value.replace(/[KMBT]/, '')) * multiplier || 0;
+        }
+
+        function calculateProfit() {
+            let cashInvestedRaw = document.getElementById('cashInvested').value.replace(/,/g, '');
+            let purchasePrice = parseFloat(document.getElementById('purchasePrice').value);
+            let currentPrice = parseFloat(document.getElementById('currentPrice').value);
+
+            let cashInvested = parseInput(cashInvestedRaw);
+
+            if (isNaN(cashInvested) || isNaN(purchasePrice) || isNaN(currentPrice) || purchasePrice <= 0) {
+                alert('Please enter valid numbers');
+                return;
+            }
+
+            let sharesOwned = cashInvested / purchasePrice;
+            let totalValue = sharesOwned * currentPrice;
+            let profitLoss = totalValue - cashInvested;
+            let roi = ((profitLoss / cashInvested) * 100).toFixed(2);
+
+            document.getElementById('sharesOwned').textContent = formatNumber(sharesOwned);
+            document.getElementById('totalValue').textContent = `$${formatNumber(totalValue)}`;
+            document.getElementById('profitLoss').textContent = `$${formatNumber(profitLoss)}`;
+            document.getElementById('profitLoss').className = profitLoss >= 0 ? 'text-green-400' : 'text-red-400';
+            document.getElementById('roi').textContent = `${roi}%`;
+        }
+
+        function changeTheme(theme) {
+            localStorage.setItem("selectedTheme", theme);
+            if (theme === 'dark') {
+                document.documentElement.style.setProperty('--bg-color', '#1a202c');
+                document.documentElement.style.setProperty('--card-color', '#2d3748');
+                document.documentElement.style.setProperty('--button-color', '#22c55e');
+            } else if (theme === 'purple') {
+                document.documentElement.style.setProperty('--bg-color', '#4b0082');
+                document.documentElement.style.setProperty('--card-color', '#2a004d');
+                document.documentElement.style.setProperty('--button-color', '#8b5cf6');
+            } else if (theme === 'redTheme') {
+                document.documentElement.style.setProperty('--bg-color', '#64002D');
+                document.documentElement.style.setProperty('--card-color', '#8B0031');
+                document.documentElement.style.setProperty('--button-color', '#F50057');
+            } else if (theme === 'blueTheme') {
+                document.documentElement.style.setProperty('--bg-color', '#09193C');
+                document.documentElement.style.setProperty('--card-color', '#0B2C49');
+                document.documentElement.style.setProperty('--button-color', '#1D4ED8');
+            } else if (theme === 'greenTheme') {
+                document.documentElement.style.setProperty('--bg-color', '#0F2F1B');
+                document.documentElement.style.setProperty('--card-color', '#174D27');
+                document.documentElement.style.setProperty('--button-color', '#22C55E');
+            }
+            document.getElementById("themeMenu").classList.add("hidden");
+        }
+
+        function loadTheme() {
+            let savedTheme = localStorage.getItem("selectedTheme");
+            if (savedTheme) changeTheme(savedTheme);
+        }
+    </script>
+
+</body>
+</html>

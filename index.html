@@ -146,27 +146,28 @@ function loginUser() {
         return;
     }
 
-    // Replace with the actual Torn API endpoint for user data
-    const apiUrl = `https://api.torn.com/user/?apiKey=${apiKey}&secret=your_secret_key`; // Replace with real URL
+    // Torn API URL to fetch user data (replace API_KEY_HERE with the user's input)
+    const apiUrl = `https://api.torn.com/user/?apiKey=${apiKey}`;
 
-    // Fetch the user's data from the Torn API
+    // Fetch user data from Torn API
     fetch(apiUrl)
         .then(response => response.json())
         .then(data => {
+            // Check if there was an error in the API response (invalid API key or other issues)
             if (data.error) {
                 alert('Invalid API Key or there was an error with the request!');
                 return;
             }
 
-            // Assuming the API returns the user data in the format: { name: "John Doe", balance: 1000000 }
+            // Assuming data contains user information like name and balance
             const user = data;
             document.getElementById('loginSection').classList.add('hidden');
             document.getElementById('dashboardSection').classList.remove('hidden');
             document.getElementById('userName').textContent = user.name;
-            document.getElementById('userBalance').textContent = `$${user.balance.toLocaleString()}`;
+            document.getElementById('userBalance').textContent = `$${user.networth.toLocaleString()}`;
 
             // Display investment suggestions based on user balance
-            const suggestions = getInvestmentSuggestions(user.balance);
+            const suggestions = getInvestmentSuggestions(user.networth);
             const suggestionsList = document.getElementById('investmentSuggestions');
             suggestionsList.innerHTML = '';
             suggestions.forEach(suggestion => {
